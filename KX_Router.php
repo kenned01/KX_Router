@@ -60,13 +60,58 @@ class KX_Router implements Request_Methods {
 
 	private function Response(){
 		if( empty($_POST) ){
-			return json_decode(
+
+			$data = json_decode(
 				file_get_contents('php://input'),
 				true
 			);
+
+			if( is_null($data)){
+				return $this->getFormdata();
+			}else{
+				return $data;
+			}
 		}
 
 		return $_POST;
+	}
+
+	private function getFormdata(){
+
+		$data = file_get_contents('php://input');
+		$parametros = [];
+
+		if(stripos($data,"Content-Disposition: form-data;")){
+
+			
+			$patron = "/----------------------------[0-9]*/";
+	   		$sustitucion = "";
+
+		   	$valor = preg_replace($patron, $sustitucion, $data);
+		   	$valor = explode("Content-Disposition: form-data;", $valor);
+
+		   	for ($i=0; $i < count($valor); $i++) {
+
+		   		$valor[$i] = trim($valor[$i]);
+
+		   		if(!empty( $valor[$i]) && isset( $valor[$i] ) )	{
+		   			
+		   			$patron = ["/name=\"/", "/\n*/", "/\r--/", "/\r/"];
+		   			$sustitucion = "";
+				    $valorI = preg_replace($patron, $sustitucion, $valor[$i]);
+				    
+				    $hash = '"';
+				    $valorK = substr($valorI, 0, strpos($valorI,$hash));
+				    $valorV = substr($valorI, strpos($valorI,$hash)+1);
+
+				    $parametros[$valorK] = $valorV;
+		   		}
+		   	}
+
+		}
+
+		return $parametros;
+
 	}
 
 	private function implement($method)	{
