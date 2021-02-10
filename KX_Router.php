@@ -15,46 +15,56 @@ class KX_Router implements Request_Methods {
 	];
 
 	/**
-	* Solo el metodo POST acepta form-data como body
-	* los otros metodos solo aceptan json en el body
+	 * @var int status code
+	*/
+	PUBLIC CONST INTERNAL_ERROR = 500;
+	/**
+	 * @var int status code
+	*/
+	PUBLIC CONST NOT_FOUND      = 404;
+	/**
+	 * @var int status code
+	*/
+	PUBLIC CONST OK							= 200;
+	/**
+	 * @var int status code
+	*/
+	PUBLIC CONST BAD_REQUEST		= 400;
+	/**
+	 * @var int status code
+	*/
+	PUBLIC CONST UNAUTHORIZED		= 401;
+	/**
+	 * @var int status code
+	*/
+	PUBLIC CONST FORBIDDEN			= 403;
+	/**
+	 * @var int status code
+	*/
+	PUBLIC CONST NOT_ALLOWED		= 405;
+	/**
+	 * @var int status code
+	*/
+	PUBLIC CONST NO_CONTENT		= 204;
+
+	/**
+	 * Run the Application with all acepted endpoints
 	*/
 	public function run(){
-		switch ($_SERVER["REQUEST_METHOD"]) {
-			case 'GET':
-				if($this->methods["get"][0]){
-					$this->implement("get");
-				}else{
-					echo $this->notAllowed();
-				}
-				break;
+
+		$allow_methods = ["get", "post", "put", "delete"];
+		$method = strtolower($_SERVER["REQUEST_METHOD"]);
+
+		if( in_array( $method, $allow_methods ) ){
 			
-			case 'POST':
-				if($this->methods["post"][0]){
-					$this->implement("post");
-				}else{
-					echo $this->notAllowed();
-				}
-				break;
-			
-			case 'PUT':
-				if($this->methods["put"][0]){
-					$this->implement("put");
-				}else{
-					echo $this->notAllowed();
-				}
-				break;
-			
-			case 'DELETE':
-				if($this->methods["delete"][0]){
-					$this->implement("delete");
-				}else{
-					echo $this->notAllowed();
-				}
-				break;
-			
-			default:
-				echo $this->notAllowed();
-				break;
+			if($this->methods[$method][0]){
+				$this->implement($method);
+			}else{
+				self::sendJson([], self::NOT_ALLOWED);
+			}
+
+		}else{
+			self::sendJson([], self::NOT_ALLOWED);
 		}
 	}
 
@@ -124,28 +134,55 @@ class KX_Router implements Request_Methods {
 		}else{
 			if ( $midd() ) {
 				$call($res);
+			}else{
+				self::sendJson([], self::FORBIDDEN);
 			}
 		}
 	}
-
-	private function notAllowed()	{
-		return "method not allowed";
-	}
 	
+	/**
+	 * Get method
+	 * @param Callback function that is called when method is executed
+	 * @param Middleware function that is called before callback | optional | must return either true or false
+	*/
 	public function get($callback, $middleware = null)	{
 		$this->methods["get"] = [true, $callback, $middleware ];
 	}
 
+	/**
+	 * Post method
+	 * @param Callback function that is called when method is executed
+	 * @param Middleware function that is called before callback | optional | must return either true or false
+	*/
 	public function post($callback, $middleware = null)	{
 		$this->methods["post"] = [true, $callback, $middleware ];
 	}
 
+	/**
+	 * Delete method
+	 * @param Callback function that is called when method is executed
+	 * @param Middleware function that is called before callback | optional | must return either true or false
+	*/
 	public function delete($callback, $middleware = null)	{
 		$this->methods["delete"] = [true, $callback, $middleware ];
 	}
 
+	/**
+	 * Put method
+	 * @param Callback function that is called when method is executed
+	 * @param Middleware function that is called before callback | optional | must return either true or false
+	*/
 	public function put($callback, $middleware = null)	{
 		$this->methods["put"] = [true, $callback, $middleware ];
+	}
+
+	/**
+	 * Print Json
+	*/
+	public static function sendJson($data, $status){
+		header('Content-type: application/json');
+		header("HTTP/1.0 $status");
+		echo json_encode($data);
 	}
 
 }
